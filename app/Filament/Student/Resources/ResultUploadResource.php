@@ -9,6 +9,7 @@ use Filament\Tables;
 use Filament\Forms\Form;
 use Filament\Tables\Table;
 use App\Models\ResultUpload;
+use Illuminate\Support\Facades\Auth;
 use Filament\Resources\Resource;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
@@ -25,6 +26,16 @@ class ResultUploadResource extends Resource
     protected static ?string $navigationGroup = 'Exams';
     protected static ?string $navigationLabel = 'My Results';
 
+
+    public static function getEloquentQuery(): Builder
+    {
+        $studentId = Auth::id();
+
+        return parent::getEloquentQuery()
+            ->whereHas('resultUploads', function ($query) use ($studentId) {
+                $query->where('card_items', 'like', '%"' . $studentId . '":%');
+            });
+    }
     public static function form(Form $form): Form
     {
         return $form
