@@ -18,6 +18,7 @@ use App\Filament\Student\Resources\ResultUploadResource\RelationManagers;
 use App\Filament\Student\Resources\ResultUploadResource\Pages\StudentMyViewResult;
 use App\Models\ResultRoot;
 
+
 class ResultUploadResource extends Resource
 {
     protected static ?string $model = ResultRoot::class;
@@ -31,10 +32,22 @@ class ResultUploadResource extends Resource
     {
         $studentId = Auth::id();
 
+        $relevantRootIds = ResultRoot::with('resultUploads')
+            ->get()
+            ->filter(function ($resultRoot) use ($studentId) {
+                return $resultRoot->resultUploads->contains(function ($upload) use ($studentId) {
+                    $items = is_array($upload->card_items)
+                        ? $upload->card_items
+                        : json_decode($upload->card_items, true);
+
+                    return is_array($items) && array_key_exists((string) $studentId, $items);
+                });
+            })
+            ->pluck('id');
+
+
         return parent::getEloquentQuery()
-            ->whereHas('resultUploads', function ($query) use ($studentId) {
-                $query->where('card_items', 'like', '%"' . $studentId . '":%');
-            });
+            ->whereIn('id', $relevantRootIds);
     }
     public static function form(Form $form): Form
     {
